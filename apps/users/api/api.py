@@ -1,3 +1,4 @@
+from rest_framework import status
 from rest_framework.views import APIView
 from rest_framework.response import Response
 from rest_framework.decorators import api_view
@@ -23,7 +24,7 @@ def user_api_view( request ):
         users           = User.objects.all()
         user_serializer = UserSerializer( users, many = True )
 
-        return Response( user_serializer.data )
+        return Response( user_serializer.data, status = status.HTTP_200_OK )
     
     elif request.method == 'POST':
 
@@ -33,38 +34,40 @@ def user_api_view( request ):
 
             user_serializer.save()
 
-            return Response( user_serializer.data )
+            return Response( user_serializer.data, status = status.HTTP_201_CREATED )
 
-        return Response( user_serializer.errors )
+        return Response( user_serializer.errors, status = status.HTTP_400_BAD_REQUEST )
 
 
 @api_view(['GET', 'PUT', 'DELETE'])
-def user_detail_api_view( request, pk ):
-    
-    if request.method == 'GET':
+def user_detail_api_view( request, pk = None ):
 
-        user            = User.objects.filter( id = pk ).first()
-        user_serializer = UserSerializer( user )
+    user = User.objects.filter( id = pk ).first()
 
-        return Response( user_serializer.data )
-
-    elif request.method == 'PUT':
+    if user:
         
-        user            = User.objects.filter( id = pk ).first()
-        user_serializer = UserSerializer( user, data = request.data )
+        if request.method == 'GET':
 
-        if user_serializer.is_valid():
+            user_serializer = UserSerializer( user )
 
-            user_serializer.save()
+            return Response( user_serializer.data, status = status.HTTP_200_OK )
 
-            return Response( user_serializer.data )
-        
-        return Response( user_serializer.errors )
+        elif request.method == 'PUT':
+            
+            user_serializer = UserSerializer( user, data = request.data )
 
-    elif request.method == 'DELETE':
+            if user_serializer.is_valid():
 
-        user = User.objects.filter( id = pk ).first()
+                user_serializer.save()
 
-        user.delete()
+                return Response( user_serializer.data, status = status.HTTP_200_OK )
+            
+            return Response( user_serializer.errors, status = status.HTTP_400_BAD_REQUEST )
 
-        return Response('Eliminado correctamente')
+        elif request.method == 'DELETE':
+
+            user.delete()
+
+            return Response( { 'message':'Usuario eliminado correctamente!' }, status = status.HTTP_200_OK )
+
+    return Response( { 'message':'No se ah encontrado un usuario con estos datos!' }, status = status.HTTP_400_BAD_REQUEST )
